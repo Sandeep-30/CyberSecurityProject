@@ -1,4 +1,6 @@
-ip_address,total_requests,failed_logins,suspicious_keywords,unusual_access_count,risk_score,reasons
-192.168.1.10,6,6,failed:6; invalid:6; admin:2,6,84,possible brute force; suspicious keywords; unusual access time
-198.51.100.23,20,0,,20,42,high request volume; unusual access time
-203.0.113.55,4,0,wp-login:1; forbidden:1; admin:1; denied:1; passwd:1; ../:1; error:1,0,21,suspicious keywords
+ip_address,severity,risk_score,total_requests,failed_logins,apache_errors,suspicious_keywords,targeted_usernames,top_paths,unusual_access_count,abuse_confidence_score,abuse_total_reports,country,isp,reasons
+45.33.32.156,High,51,6,6,0,invalid:5; admin:2,admin:2; oracle:1; test:1; git:1; root:1,,0,not checked,not checked,not checked,not checked,possible brute force; suspicious keywords
+198.51.100.23,High,42,20,0,0,,,/api/users:20,20,not checked,not checked,not checked,not checked,high request volume; unusual access time
+106.75.246.203,Medium,30,6,6,0,,ubnt:6,,0,not checked,not checked,not checked,not checked,possible brute force
+203.0.113.55,Medium,23,4,0,4,wp-login:1; admin:1; passwd:1; ../:1; sqlmap:1,,/wp-login.php:1; /admin:1; /../../etc/passwd:1,0,not checked,not checked,not checked,not checked,suspicious keywords
+185.91.69.217,Medium,18,3,3,0,invalid:1,root:2; support:1,,0,not checked,not checked,not checked,not checked,suspicious keywords

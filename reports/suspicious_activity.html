@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cybersecurity Log Analysis Report</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f6f8fb; color: #172033; }
+    header { background: #172033; color: white; padding: 28px 36px; }
+    main { padding: 28px 36px; }
+    h1 { margin: 0; font-size: 28px; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .metric { background: white; border: 1px solid #d9e1ec; border-radius: 8px; padding: 16px; }
+    .metric strong { display: block; font-size: 26px; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #d9e1ec; }
+    th, td { padding: 12px; border-bottom: 1px solid #e5ebf3; text-align: left; font-size: 14px; vertical-align: top; }
+    th { background: #eef3f8; }
+    .badge { border-radius: 999px; color: white; display: inline-block; font-size: 12px; font-weight: bold; padding: 4px 9px; }
+    .critical { background: #8f1d1d; }
+    .high { background: #c2410c; }
+    .medium { background: #b7791f; }
+    .low { background: #2f855a; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cybersecurity Log Analysis Report</h1>
+  </header>
+  <main>
+    <section class="summary">
+      <div class="metric">Total IPs Analyzed<strong>6</strong></div>
+      <div class="metric">Suspicious IPs Flagged<strong>5</strong></div>
+      <div class="metric">Brute Force Attempts<strong>2</strong></div>
+      <div class="metric">Top Threat<strong>45.33.32.156</strong></div>
+    </section>
+    <table>
+      <thead>
+        <tr>
+          <th>IP Address</th>
+          <th>Severity</th>
+          <th>Risk</th>
+          <th>Failed Logins</th>
+          <th>Requests</th>
+          <th>Country</th>
+          <th>AbuseIPDB</th>
+          <th>Reasons</th>
+          <th>Keywords</th>
+        </tr>
+      </thead>
+      <tbody><tr><td>45.33.32.156</td><td><span class='badge high'>High</span></td><td>51</td><td>6</td><td>6</td><td>not checked</td><td>not checked</td><td>possible brute force; suspicious keywords</td><td>invalid:5; admin:2</td></tr>
+<tr><td>198.51.100.23</td><td><span class='badge high'>High</span></td><td>42</td><td>0</td><td>20</td><td>not checked</td><td>not checked</td><td>high request volume; unusual access time</td><td></td></tr>
+<tr><td>106.75.246.203</td><td><span class='badge medium'>Medium</span></td><td>30</td><td>6</td><td>6</td><td>not checked</td><td>not checked</td><td>possible brute force</td><td></td></tr>
+<tr><td>203.0.113.55</td><td><span class='badge medium'>Medium</span></td><td>23</td><td>0</td><td>4</td><td>not checked</td><td>not checked</td><td>suspicious keywords</td><td>wp-login:1; admin:1; passwd:1; ../:1; sqlmap:1</td></tr>
+<tr><td>185.91.69.217</td><td><span class='badge medium'>Medium</span></td><td>18</td><td>3</td><td>3</td><td>not checked</td><td>not checked</td><td>suspicious keywords</td><td>invalid:1</td></tr></tbody>
+    </table>
+  </main>
+</body>
+</html>
