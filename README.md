@@ -1,36 +1,84 @@
 # Cybersecurity Log Analyzer
 
-A Python security log analyzer that parses SSH/authentication logs and Apache access logs, detects suspicious IP activity, and generates CSV plus self-contained HTML reports.
+**A Python SOC-style log analyzer that parses real SSH and Apache logs, scores suspicious IP behavior on a multi-signal severity engine, and enriches threats with live reputation and geolocation data.**
 
+Point it at an auth log or access log and it detects brute-force attempts, request floods, suspicious keywords, HTTP error patterns, and off-hours access — then ranks every flagged IP from Low to Critical and exports terminal, CSV, and shareable HTML reports.
+
+<!-- Top screenshot = your strongest first impression. Capture the color-coded HTML report, not just the terminal. -->
+![HTML report screenshot](screenshots/html_report.png)
 ![Terminal report screenshot](screenshots/terminal_report.svg)
 
-## Features
+---
 
-- Parses realistic SSH auth log syntax such as `Failed password for root from 45.33.32.156 port 39618 ssh2`
-- Parses Apache Common and Combined Log Format access logs
-- Detects possible brute-force attempts, high request volume, suspicious keywords, HTTP errors, and unusual access times
-- Generates a terminal summary report, CSV report, and color-coded HTML report
-- Optionally enriches flagged IPs with AbuseIPDB threat intelligence
-- Optionally adds IP geolocation using ip-api.com
-- Supports `--watch` mode for live alerting while a log file is being updated
+## How it works
 
-## Project Files
+The analyzer runs a per-line detection pipeline that handles two real-world log formats without being told which is which:
 
-- `log_analyzer.py`: Main analyzer script
-- `sample_logs/auth.log`: Sample mixed SSH and Apache log file
-- `reports/suspicious_activity.csv`: Generated CSV report
-- `reports/suspicious_activity.html`: Generated HTML report
-- `screenshots/terminal_report.svg`: Screenshot-style terminal output for this README
+1. **Format detection** — classifies each line as SSH/auth or Apache access syntax
+2. **Field extraction** — pulls IP, timestamp hour, username, URL path, HTTP status, and suspicious keywords as available
+3. **Per-IP aggregation** — tracks counts and behavior per source IP
+4. **Multi-signal scoring** — evaluates each IP against five independent threat signals
+5. **Severity assignment** — maps the combined score to a `Low` → `Critical` label
+6. **Reporting** — writes terminal, CSV, and HTML output for every flagged IP
 
-## Run the Analyzer
+It parses genuine log syntax, not toy data — e.g. `Failed password for root from 45.33.32.156 port 39618 ssh2` for SSH, and both Apache Common and Combined Log Format for access logs.
 
-Open this project folder in VS Code, then run:
+---
+
+## The severity scoring engine
+
+The core of the tool. Rather than flagging on a single rule, each IP is scored across **five weighted signals** and assigned a severity tier:
+
+| Signal | What it catches |
+|---|---|
+| Failed-login frequency | SSH/credential brute-force attempts |
+| Request volume | Scraping, flooding, DoS-style behavior |
+| Suspicious keywords | Path traversal, injection, scanner fingerprints |
+| HTTP error rate | Probing for non-existent or forbidden resources |
+| Off-hours access | Activity at unusual times for the environment |
+
+The combined score determines a **Low / Medium / High / Critical** rating, so the output is a triaged threat list rather than a flat dump of every IP that appeared. Thresholds are tunable from the command line (`--failed-limit`, `--request-limit`).
+
+---
+
+## Threat intelligence enrichment
+
+Optional flags turn the analyzer from a parser into a real triage tool:
+
+- **AbuseIPDB reputation** — cross-references flagged IPs against the AbuseIPDB v2 `check` endpoint to confirm whether an IP is a known reported abuser
+- **Geolocation** — resolves country and ISP for each flagged IP via ip-api.com
+
+```bash
+# Reputation check (API key via environment variable — never hardcoded)
+export ABUSEIPDB_API_KEY="your_api_key_here"
+python3 log_analyzer.py sample_logs/auth.log
+
+# Geolocation
+python3 log_analyzer.py sample_logs/auth.log --geo
+
+# Both together
+python3 log_analyzer.py sample_logs/auth.log --geo --abuseipdb-key your_api_key_here
+```
+
+---
+
+## Live monitoring
+
+`--watch` mode tails a log file and alerts on suspicious lines as they're written, demonstrating real-time detection behavior:
+
+```bash
+python3 log_analyzer.py sample_logs/auth.log --watch
+```
+
+---
+
+## Usage
 
 ```bash
 python3 log_analyzer.py sample_logs/auth.log
 ```
 
-The program prints a summary like this:
+Produces a terminal summary plus CSV and HTML reports:
 
 ```text
 ================================================
@@ -47,119 +95,59 @@ CSV report saved to: reports/suspicious_activity.csv
 HTML report saved to: reports/suspicious_activity.html
 ```
 
-## Output Reports
+Open `reports/suspicious_activity.html` in a browser for a shareable report with summary cards, severity labels, and a suspicious-IP table.
 
-CSV report:
-
-```text
-reports/suspicious_activity.csv
-```
-
-HTML report:
-
-```text
-reports/suspicious_activity.html
-```
-
-Open the HTML file in a browser to view a shareable report with summary cards, severity labels, and a suspicious-IP table.
-
-## Useful Commands
-
-Lower the brute-force threshold:
+**Common options**
 
 ```bash
-python3 log_analyzer.py sample_logs/auth.log --failed-limit 3
-```
+# Tighten brute-force / request thresholds
+python3 log_analyzer.py sample_logs/auth.log --failed-limit 3 --request-limit 10
 
-Lower the high-request threshold:
-
-```bash
-python3 log_analyzer.py sample_logs/auth.log --request-limit 10
-```
-
-Skip HTML generation:
-
-```bash
+# Skip HTML generation
 python3 log_analyzer.py sample_logs/auth.log --no-html
-```
 
-Save to custom report paths:
-
-```bash
+# Custom report paths
 python3 log_analyzer.py sample_logs/auth.log -o reports/custom.csv --html-report reports/custom.html
 ```
 
-## Threat Intelligence Enrichment
+---
 
-AbuseIPDB checks use the AbuseIPDB API v2 `check` endpoint and require a free API key. Set the key as an environment variable:
+## Tech stack
 
-```bash
-export ABUSEIPDB_API_KEY="your_api_key_here"
-python3 log_analyzer.py sample_logs/auth.log
+- **Language:** Python 3 (standard library — `re`, `csv`, collections-based counting)
+- **Threat intel:** AbuseIPDB API v2
+- **Geolocation:** ip-api.com JSON API
+- **Output:** terminal summary, CSV, self-contained HTML
+
+---
+
+## Project structure
+
+```
+log_analyzer.py                     main analyzer
+sample_logs/auth.log                demo SSH + Apache log file
+reports/suspicious_activity.csv     generated CSV report
+reports/suspicious_activity.html    generated HTML report
+screenshots/                        README images
 ```
 
-You can also pass the key directly:
+---
 
-```bash
-python3 log_analyzer.py sample_logs/auth.log --abuseipdb-key your_api_key_here
-```
+## Real-world format references
 
-Geolocation lookup uses the free ip-api.com JSON endpoint:
+The parser is modeled on production log formats and tested against public datasets:
 
-```bash
-python3 log_analyzer.py sample_logs/auth.log --geo
-```
+- SSH auth logs as found in `/var/log/auth.log` and `/var/log/secure`
+- [Apache Common & Combined Log Format documentation](https://httpd.apache.org/docs/2.2/logs.html)
+- [Kaggle: Linux auth.log anomalies dataset](https://www.kaggle.com/datasets/lnorbaci/linux-auth-log-anomalies)
+- [Kaggle: Authentication & Authorization Failures dataset](https://www.kaggle.com/datasets/mirzayasirabdullah07/authentication-and-authorization-failures-dataset)
+- [AbuseIPDB API v2 docs](https://docs.abuseipdb.com/)
+- [ip-api.com JSON API docs](https://ip-api.com/docs/api:json)
 
-Use both enrichment options together:
+A note on data hygiene: the bundled `sample_logs/auth.log` is a synthetic demonstration file. Real system logs are intentionally **not** committed, since they can expose live usernames, IPs, and access paths — treat them as sensitive.
 
-```bash
-python3 log_analyzer.py sample_logs/auth.log --geo --abuseipdb-key your_api_key_here
-```
+---
 
-## Watch Mode
+## Resume bullet
 
-Use watch mode to tail a live log file and print alerts as new suspicious lines appear:
-
-```bash
-python3 log_analyzer.py sample_logs/auth.log --watch
-```
-
-This is useful for demonstrating real-time monitoring behavior.
-
-## Real Log Format References
-
-The parser is designed around common real-world formats:
-
-- SSH authentication logs usually appear in `/var/log/auth.log` or `/var/log/secure` on Unix-like systems. SSH failure examples commonly include messages like `Failed password ... from <ip> port <port> ssh2`.
-- Apache Common Log Format and Combined Log Format follow the structure documented by the Apache HTTP Server project.
-- AbuseIPDB provides an IP reputation API that can check whether a flagged IP has been reported for abusive behavior.
-- ip-api.com provides a JSON geolocation endpoint for resolving IP address country and ISP information.
-
-Useful public references and datasets:
-
-- [Apache HTTP Server log files documentation](https://httpd.apache.org/docs/2.2/logs.html)
-- [SSH Handbook SSH logs examples](https://www.sshhandbook.com/ssh-logs/)
-- [Kaggle linux_auth_log-anomalies dataset](https://www.kaggle.com/datasets/lnorbaci/linux-auth-log-anomalies)
-- [Kaggle Authentication & Authorization Failures Dataset](https://www.kaggle.com/datasets/mirzayasirabdullah07/authentication-and-authorization-failures-dataset)
-- [GitHub ELK Apache combined-log sample repository](https://github.com/aagea/elk-example)
-- [AbuseIPDB API v2 documentation](https://docs.abuseipdb.com/)
-- [ip-api.com JSON API documentation](https://ip-api.com/docs/api:json)
-
-## How It Works
-
-For every log line, the analyzer:
-
-1. Detects whether the line looks like SSH/auth or Apache access log syntax
-2. Extracts the IP address, timestamp hour, username, URL path, HTTP status, and suspicious keywords when available
-3. Tracks counts per IP using dictionaries and counters
-4. Scores each IP based on failed logins, repeated requests, suspicious keywords, HTTP errors, and unusual access time
-5. Assigns severity from `Low` to `Critical`
-6. Writes CSV and HTML reports for suspicious IPs
-
-## Resume Bullet
-
-Built a Python-based cybersecurity log analyzer that parses SSH and Apache logs, detects brute-force attempts and suspicious IP behavior using regex and frequency-based rules, enriches flagged IPs with optional threat intelligence/geolocation data, and generates CSV plus HTML reports for SOC-style review.
-
-## Data Source Notes
-
-The included `sample_logs/auth.log` is a small demonstration file modeled after common SSH and Apache log syntax. For a portfolio or GitHub submission, you can also test with larger public datasets from Kaggle or GitHub, but avoid committing private system logs because they may contain real usernames, IP addresses, hostnames, and access paths.
+> Built a Python cybersecurity log analyzer that auto-detects and parses SSH and Apache log formats, scores suspicious IPs on a five-signal severity engine (brute-force frequency, request volume, suspicious keywords, HTTP errors, off-hours access), enriches flagged IPs with AbuseIPDB threat intelligence and geolocation, and exports terminal, CSV, and color-coded HTML reports for SOC-style triage.
